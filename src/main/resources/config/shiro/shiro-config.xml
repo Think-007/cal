@@ -38,8 +38,8 @@
 	<!-- Shiro Filter -->
 	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
 		<property name="securityManager" ref="securityManager" />
-		<property name="loginUrl" value="/gate/homepage" />
-		<property name="successUrl" value="/scorer/scorepad" />
+		<property name="loginUrl" value="/" />
+		<!-- <property name="successUrl" value="/scorer/scorepad" /> -->
 		<!-- <property name="unauthorizedUrl" value="/views/error.html" /> -->
 
 		<property name="filterChainDefinitions">
@@ -55,7 +55,7 @@
 				/weichat/authtoken/* = anon
 				/gate/mainpage = anon
 				/gate/authtoken = anon
-				/** = anon <!-- authc -->
+				/** =  authc 
 				<!-- /login/getContextPath = anon /login/timeout = anon /logout = logout 
 					/login/tologin = anon /views/demo/** = anon /views/userRegister.html = anon 
 					/hessian/* = anon /views/** = user,permissionFilter /management/business/* 
