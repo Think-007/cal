@@ -81,7 +81,7 @@ public class AuthController {
 
 	@RequestMapping("/registration")
 	public ModelAndView registUser(HttpServletRequest request,
-			HttpServletResponse response) {
+			HttpServletResponse response, String telNumber, String password) {
 		ModelAndView mv = new ModelAndView();
 		UserRegistParam userRegistParam = new UserRegistParam();
 		CalLog.info(logger, "enter registUser", null, userRegistParam);

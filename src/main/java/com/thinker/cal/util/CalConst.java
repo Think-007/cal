@@ -2,6 +2,8 @@ package com.thinker.cal.util;
 
 public interface CalConst {
 
+	public static final String PROJ_FLAG = "mg_cal_";
+
 	// 异常错误码
 	public static final int EXCEPTION = -1000;
 

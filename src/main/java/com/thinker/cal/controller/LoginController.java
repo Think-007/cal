@@ -6,6 +6,8 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import lib.MESSAGEXsend;
+
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.DisabledAccountException;
 import org.apache.shiro.authc.ExcessiveAttemptsException;
@@ -19,11 +21,11 @@ import org.apache.shiro.subject.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.ModelAndView;
 
 import com.thinker.cal.config.WeiChatConfig;
 import com.thinker.cal.domain.AuthAccessToken;
@@ -35,9 +37,12 @@ import com.thinker.cal.domain.LocalUser;
 import com.thinker.cal.service.GolfPlaceService;
 import com.thinker.cal.service.UserInfoService;
 import com.thinker.cal.service.WeiChatAuthService;
+import com.thinker.cal.service.impl.RedisService;
 import com.thinker.cal.util.CalConst;
 import com.thinker.cal.util.CalLog;
 import com.thinker.creator.domain.ProcessResult;
+
+import config.AppConfig;
 
 @Controller
 @RequestMapping("/gate")
@@ -61,6 +66,16 @@ public class LoginController {
 	// 场地信息
 	@Resource
 	private GolfPlaceService golfPlaceService;
+
+	// 短信配置信息
+	@Resource
+	private AppConfig config;
+
+	@Resource
+	private RedisService redisService;
+
+	@Resource
+	private StringRedisTemplate stringRedisTemplate;
 
 	// 登录跳转统一页面
 	@RequestMapping("/homepage")
@@ -220,6 +235,26 @@ public class LoginController {
 
 		CalLog.info(logger, "finish getGolfSpace", null, processResult);
 		return processResult;
+
+	}
+
+	@RequestMapping(value = "/smscode", method = RequestMethod.POST)
+	@ResponseBody
+	public void sendSms(HttpServletRequest resquest, String telNumber) {
+
+		// 先看redis里面有没有，有就不给客户端发短息
+		String redisSmsCode = redisService.getStr(telNumber);
+		if (redisSmsCode == null || "".equals(redisSmsCode.trim())) {
+			MESSAGEXsend submail = new MESSAGEXsend(config);
+			String smsCode = (int) (Math.random() * 1000000) + "";
+			submail.addTo(telNumber);
+			submail.setProject("5gk8m1");
+			submail.addVar("code", "我勒个去，刚才打了那么多字都白说了。。。");
+			submail.addVar("time", "60s");
+			redisService.setStr(telNumber, smsCode, 60);
+			String response = submail.xsend();
+			System.out.println("接口返回数据：" + response);
+		}
 
 	}
 
