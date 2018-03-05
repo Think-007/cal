@@ -249,7 +249,7 @@ public class LoginController {
 			String smsCode = (int) (Math.random() * 1000000) + "";
 			submail.addTo(telNumber);
 			submail.setProject("5gk8m1");
-			submail.addVar("code", "我勒个去，刚才打了那么多字都白说了。。。");
+			submail.addVar("code", smsCode);
 			submail.addVar("time", "60s");
 			redisService.setStr(telNumber, smsCode, 60);
 			String response = submail.xsend();

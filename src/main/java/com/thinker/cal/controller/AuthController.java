@@ -26,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.thinker.cal.config.WeiChatConfig;
@@ -41,6 +42,7 @@ import com.thinker.cal.service.WeiChatAuthService;
 import com.thinker.cal.util.CalConst;
 import com.thinker.cal.util.CalLog;
 import com.thinker.cal.util.JsonUtils;
+import com.thinker.cal.util.StrUtil;
 import com.thinker.creator.domain.ProcessResult;
 
 /**
@@ -81,18 +83,25 @@ public class AuthController {
 
 	@RequestMapping("/registration")
 	public ModelAndView registUser(HttpServletRequest request,
-			HttpServletResponse response, String telNumber, String password) {
+			HttpServletResponse response, UserRegistParam userRegistParam) {
 		ModelAndView mv = new ModelAndView();
-		UserRegistParam userRegistParam = new UserRegistParam();
+		// UserRegistParam userRegistParam = new UserRegistParam();
 		CalLog.info(logger, "enter registUser", null, userRegistParam);
 		String url = null;
 		try {
 			String fromUrl = request.getRequestURL().toString();
 			System.out.println(fromUrl);
 			userRegistParam.setPassword("123456");
-			userRegistParam.setTelNum("18201410900");
+			userRegistParam.setTelNum("18201410907");
 
 			// 1、校验参数信息,验证码等
+			if (StrUtil.isNull(userRegistParam.getTelNum())
+					|| StrUtil.isNull(userRegistParam.getPassword())
+					|| StrUtil.isNull(userRegistParam.getSecurityCode())) {
+
+				mv.setViewName("/");
+				return mv;
+			}
 
 			// 2、构造用户信息
 			LocalUser localUser = new LocalUser();
@@ -125,9 +134,9 @@ public class AuthController {
 			mv.setViewName("redirect:" + url);
 
 		} catch (Exception t) {
-
 			mv.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);
 			mv.addObject("ex", t);
+			mv.addObject("retCode", CalConst.EXCEPTION);
 			mv.setViewName("/home");
 			t.printStackTrace();
 			CalLog.error(logger, "registUser error", null, userRegistParam, t);
@@ -135,6 +144,77 @@ public class AuthController {
 		CalLog.info(logger, "finish reqcode", null, null);
 
 		return mv;
+
+	}
+
+	@RequestMapping("/registrationb")
+	@ResponseBody
+	public ProcessResult registUser2(HttpServletRequest request,
+			HttpServletResponse response, UserRegistParam userRegistParam) {
+
+		ProcessResult result = new ProcessResult();
+		// UserRegistParam userRegistParam = new UserRegistParam();
+		CalLog.info(logger, "enter registUser", null, userRegistParam);
+		String url = null;
+		try {
+			String fromUrl = request.getRequestURL().toString();
+			System.out.println(fromUrl);
+			userRegistParam.setPassword("123456");
+			userRegistParam.setTelNum("18201410907");
+
+			// 1、校验参数信息,验证码等
+
+			if (StrUtil.isNull(userRegistParam.getTelNum())
+					|| StrUtil.isNull(userRegistParam.getPassword())
+					|| StrUtil.isNull(userRegistParam.getSecurityCode())) {
+
+				result.setRetMsg("param is eror");
+				return result;
+
+			}
+
+			// 2、构造用户信息
+			LocalUser localUser = new LocalUser();
+			localUser.setTelNumber(userRegistParam.getTelNum());
+			// Md5Hash mh = new Md5Hash(userRegistParam.getPassword(), saltStr,
+			// hashIterations);
+			localUser.setPassword(userRegistParam.getPassword());
+			localUser.setSalt(saltStr);
+
+			CalLog.debug(logger, "registUser", null, localUser);
+
+			// 3、用户信息暂时存储到缓存
+			String tempInfo = JsonUtils.toJson(localUser);
+			cache.put(userRegistParam.getTelNum(), tempInfo);
+
+			// 4、请求访问用户微信信息授权码
+			CalLog.info(logger, "req weicaht code", null, null);
+
+			AuthCodeParams authCodeParams = new AuthCodeParams();
+			String redirect_uri = host + "/weichat/authtoken/"
+					+ userRegistParam.getTelNum();
+			authCodeParams.setRedirect_uri(redirect_uri);
+			authCodeParams.setAppid(WeiChatConfig.APP_ID);
+			authCodeParams.setScope(AuthCodeParams.SCOPE_SNSAPIBASE);
+			authCodeParams.setState(4 + "");
+			url = weiChatAuthService.getAuthPath(authCodeParams,
+					WeiChatConfig.OAUTH_AUTHORIZE_URL);
+			CalLog.debug(logger, "registUser", null, "url: " + url);
+			// throw new RuntimeException();
+			result.setRetCode(ProcessResult.SUCCESS);
+			result.setRetMsg("ok");
+			result.setRetObj(url);
+
+		} catch (Exception t) {
+			result.setRetCode(CalConst.EXCEPTION);
+			result.setRetMsg(CalConst.EXCEPTION_MSG);
+			result.setRetObj(t);
+			t.printStackTrace();
+			CalLog.error(logger, "registUser error", null, userRegistParam, t);
+		}
+		CalLog.info(logger, "finish reqcode", null, null);
+
+		return result;
 
 	}
 
